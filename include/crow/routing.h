@@ -1665,17 +1665,13 @@ namespace crow // NOTE: Already documented in "crow/app.h"
                     {
                         if (per_method.trie.find(req.url).rule_index) //Route found, but in another method
                         {
-                            const std::string error_message(get_error(405, *found, req, res));
-                            CROW_LOG_DEBUG << "Cannot match method " << req.url << " " << method_name(method_actual) << ". " << error_message;
-                            res.end();
+                            found->status_code_for_catchall_handler = 405;
                             return found;
                         }
                     }
                     //Route does not exist anywhere
 
-                    const std::string error_message(get_error(404, *found, req, res));
-                    CROW_LOG_DEBUG << "Cannot match rules " << req.url << ". " << error_message;
-                    res.end();
+                    found->status_code_for_catchall_handler = 404;
                     return found;
                 }
 
@@ -1687,6 +1683,13 @@ namespace crow // NOTE: Already documented in "crow/app.h"
         template<typename App>
         void handle(request& req, response& res, routing_handle_result found)
         {
+            if (found.status_code_for_catchall_handler)
+            {
+                std::string error_message(get_error(found.status_code_for_catchall_handler, found, req, res));
+                CROW_LOG_DEBUG << "Cannot match method or rules " << req.url << ". " << error_message;
+                res.end();
+                return;
+            }
             HTTPMethod method_actual = found.method;
             auto& rules = per_methods_[static_cast<int>(method_actual)].rules;
             unsigned rule_index = found.rule_index;

@@ -283,6 +283,7 @@ namespace crow
         std::vector<uint16_t> blueprint_indices;
         routing_params r_params;
         HTTPMethod method;
+        uint16_t status_code_for_catchall_handler{0};
 
         routing_handle_result() {}
 
