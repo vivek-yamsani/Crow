@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <memory>
+#include <array>
 
 namespace crow
 {
@@ -227,18 +228,18 @@ inline std::unique_ptr<std::pair<std::string, std::string>> qs_dict_name2kv(cons
         eq_pos = key_size = strcspn(qs_kv[i], "=");
         if (qs_kv[i][eq_pos] == '\0')
             continue;
-        auto key = std::unique_ptr<char[]>(new char[key_size + 1]);
-        memcpy(key.get(), qs_kv[i], key_size + 1);
+        std::array<char, 256> key{}; // avoid heap allocation for the key, 256 should be enough for most cases
+        memcpy(key.begin(), qs_kv[i], key_size + 1);
         key[key_size] = '\0';
-        key_size = qs_decode(key.get());
+        key_size = qs_decode(key.begin());
 
-        if (strncmp(dict_name, key.get(), name_len) == 0 &&
+        if (strncmp(dict_name, key.begin(), name_len) == 0 &&
             key_size > name_len && key[name_len] == '[' &&
             key[key_size - 1] == ']' &&
             nth-- == 0)
         {
-            auto sub_key = std::string(key.get() + name_len + 1, key_size - name_len - 2);
-            auto value = std::string(qs_kv[i] + eq_pos + 1);
+            auto sub_key = std::string_view(key.begin() + name_len + 1, key_size - name_len - 2);
+            auto value = std::string_view(qs_kv[i] + eq_pos + 1);
             return std::make_unique<std::pair<std::string, std::string>>(sub_key, value);
         }
     }
